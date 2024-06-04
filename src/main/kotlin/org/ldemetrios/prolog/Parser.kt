@@ -6,6 +6,7 @@ import com.github.h0tk3y.betterParse.grammar.parseToEnd
 import com.github.h0tk3y.betterParse.grammar.parser
 import com.github.h0tk3y.betterParse.lexer.*
 import com.github.h0tk3y.betterParse.parser.Parser
+import com.github.h0tk3y.betterParse.parser.parseToEnd
 
 const val WS = "[ \\t\\r\\n]+"
 const val SOLO = "[!(),;\\[\\]{}|%]"
@@ -40,7 +41,7 @@ const val QUOTED = "'(($CONTINUATION_ESCAPE)|($SINGLE_QUOTED_CHARACTER))*?'"
 const val DOUBLE_QUOTED_LIST = "\"(($CONTINUATION_ESCAPE)|($DOUBLE_QUOTED_CHARACTER))*?\""
 const val BACK_QUOTED_STRING = "`(($CONTINUATION_ESCAPE)|($BACK_QUOTED_CHARACTER))*?`"
 
-val PrologParser = object : Grammar<PrologFile>() {
+object PrologParser : Grammar<PrologFile>() {
     val queryPref by regexToken("%\\?-")
     val lBr by literalToken("[")
     val rBr by literalToken("]")
@@ -99,8 +100,9 @@ val PrologParser = object : Grammar<PrologFile>() {
         BackqString(BackQuotedStringGrammar.parseToEnd(text.substring(1, text.length - 1)))
     }
 
-    val atom by ((lBr * rBr) use { EmptyList }) or
-            ((`{` * `}`) use { EmptyBraces }) or
+    val atom by
+//    ((lBr * rBr) use { EmptyList }) or
+//            ((`{` * `}`) use { EmptyBraces }) or
             (letterDigit use { Name(text) }) or
             (graphicToken use { Graphic(text) }) or
             quoted or doubleQuotedList or backQuotedString or
@@ -113,7 +115,7 @@ val PrologParser = object : Grammar<PrologFile>() {
             ((optional(`-`) * float) use { FloatTerm(if (t1 == null) t2 else -t2) }) or
             (atom * -`(` * parser(::termlist) * -`)` use { CompoundTerm(t1, t2) }) or
             ((operator * parser(::term)) use { UnaryOperator(t1, t2) }) or
-            ((-lBr * parser(::termlist) * optional(-bar * parser(::term))) use { ListTerm(t1, t2) }) or
+            ((-lBr * parser(::termlist) * optional(-bar * parser(::term)) * -rBr) use { ListTerm(t1, t2) }) or
             ((-`{` * parser(::termlist) * -`}`) use ::CurlyBracketedTerm) or
             atom
 
@@ -129,8 +131,10 @@ val PrologParser = object : Grammar<PrologFile>() {
     override val rootParser: Parser<PrologFile> by zeroOrMore(directive or clause or query) use ::PrologFile
 
 
-    //    val comment by regexToken("%([^\n\r?]|\\?[^\n\r-])[^\n\r]*[\r\n]", ignore = true)
+    val comment by regexToken("%([^\n\r?]|\\?[^\n\r-])[^\n\r]*[\r\n]", ignore = true)
     val ws by regexToken(WS, ignore = true)
+
+//    override val rootParser by termOperand
 }
 
 fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = object : Grammar<String>() {
@@ -189,3 +193,7 @@ fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = objec
 val QuotedGrammar = quotedGrammar("''", "\"", "`")
 val DoubleQuotedListGrammar = quotedGrammar("'", "\"\"", "`")
 val BackQuotedStringGrammar = quotedGrammar("'", "\"", "``")
+
+fun main() = println(
+    ListTerm(listOf(Variable("H")), Variable("T"))
+)

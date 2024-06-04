@@ -48,7 +48,7 @@ data class UnaryOperator(val op: String, val arg: Term) : Term {
 }
 
 data class ListTerm(val head : List<Term>, val tail: Term?) : Term {
-    override fun toString(): String = if (tail == null) "[${head.joinToString(", ")}]" else "[$head | $tail]"
+    override fun toString(): String = if (tail == null) "[${head.joinToString(", ")}]" else "[${head.joinToString(", ")} | $tail]"
 }
 
 data class CurlyBracketedTerm(val terms: List<Term>) : Term {

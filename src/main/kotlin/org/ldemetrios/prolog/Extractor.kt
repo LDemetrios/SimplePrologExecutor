@@ -26,13 +26,11 @@ fun main(args: Array<String>) {
     val sep = uid()
     val rule = uid()
     val syntheticQuery = "$rule(Goal), call(Goal), write_term(Goal, [quoted(true)]), write($sep), fail; true."
-//    println(syntheticQuery)
     for (query in queries) {
         println("Query: " + query.clause.term)
         val newFile = "$rest\n\n\n$rule(${query.clause.term}).\n"
         val tmp = File.createTempFile("prolog-query-proc", ".pl")
         tmp.writeText(newFile)
-//        println(newFile)
 
         val process = ProcessBuilder("swipl", "-s", tmp.absolutePath).start()
         process.outputStream.bufferedWriter().run{
