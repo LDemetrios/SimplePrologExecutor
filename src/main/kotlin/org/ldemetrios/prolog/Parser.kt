@@ -14,7 +14,7 @@ const val SOLO = "[!(),;\\[\\]{}|%]"
 const val HEX_DIGIT = "[0-9a-fA-F]"
 const val DIGIT = "[0-9]"
 const val CAPITAL_LETTER = "[A-Z]"
-const val SMALL_LETTER = "[a-z_]"
+const val SMALL_LETTER = "[a-z_α-ωσς]"
 const val ALPHA = "_|($SMALL_LETTER)|($CAPITAL_LETTER)"
 const val ALPHANUMERIC = "($ALPHA)|($DIGIT)"
 const val CONTINUATION_ESCAPE = "\\Q\\\n\\E" // Regex.escape("\\\n")
@@ -56,13 +56,15 @@ object PrologParser : Grammar<Any>() {
     val bar by literalToken("|")
     val hbSep by literalToken(":-")
 
+    val floatRegex by regexToken(FLOAT)
+    val float by floatRegex use { text.toDouble() }
+
     val decimal by regexToken(DECIMAL)
     val charCodeConst by regexToken(CHARACTER_CODE_CONSTANT)
     val binary by regexToken(BINARY)
     val octal by regexToken(OCTAL)
     val hex by regexToken(HEX)
 
-    val floatRegex by regexToken(FLOAT)
 
     val otherOperator by listOf(
         "-->", "?-", "dynamic", "multifile", "discontiguous", "public",
@@ -87,7 +89,6 @@ object PrologParser : Grammar<Any>() {
             (octal use { text.substring(1).toLong(8) }) or
             (hex use { text.substring(2).toLong(16) })
 
-    val float by floatRegex use { text.toDouble() }
 
     val operatorWithoutCommas by (otherOperator or hbSep or semicolon or `-`) use { text }
     val operator by (operatorWithoutCommas or (`,` use { text }))
@@ -142,7 +143,7 @@ object PrologParser : Grammar<Any>() {
     val comment by regexToken("%([^\n\r?]|\\?[^\n\r-])[^\n\r]*[\r\n]", ignore = true)
     val ws by regexToken(WS, ignore = true)
 
-//    override val rootParser by termlist
+//    override val rootParser by float
 }
 
 fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = object : Grammar<String>() {
@@ -201,3 +202,7 @@ fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = objec
 val QuotedGrammar = quotedGrammar("''", "\"", "`")
 val DoubleQuotedListGrammar = quotedGrammar("'", "\"\"", "`")
 val BackQuotedStringGrammar = quotedGrammar("'", "\"", "``")
+//
+//fun main() = println(
+//    PrologParser.parseToEnd("3.99999999")
+//)
