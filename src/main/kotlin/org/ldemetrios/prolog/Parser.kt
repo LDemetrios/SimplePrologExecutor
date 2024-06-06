@@ -123,11 +123,13 @@ object PrologParser : Grammar<Any>() {
             ((optional(`-`) * integer) use { IntegerTerm(if (t1 == null) t2 else -t2) }) or
             ((optional(`-`) * float) use { FloatTerm(if (t1 == null) t2 else -t2) }) or
             (atom * -`(` * parser(::termlist) * -`)` use { CompoundTerm(t1, t2) }) or
+            (atom * parser(::listLiteral) use { CompoundTerm(t1, listOf(t2)) }) or
             ((operator * parser(::term)) use { UnaryOperator(t1, t2) }) or
-            ((-lBr * parser(::termlist) * optional(-bar * parser(::term)) * -rBr) use { ListTerm(t1, t2) }) or
+            parser(::listLiteral) or
             ((-`{` * parser(::termlist) * -`}`) use ::CurlyBracketedTerm) or
             atom
 
+    val listLiteral by ((-lBr * parser(::termlist) * optional(-bar * parser(::term)) * -rBr) use { ListTerm(t1, t2) })
     val term by rightAssociative(parser(::termOperand), operator, ::BinaryOperator)
     val termWithoutCommas by rightAssociative(parser(::termOperand), operatorWithoutCommas, ::BinaryOperator)
 
