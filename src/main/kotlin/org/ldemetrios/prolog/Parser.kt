@@ -7,6 +7,7 @@ import com.github.h0tk3y.betterParse.grammar.parser
 import com.github.h0tk3y.betterParse.lexer.*
 import com.github.h0tk3y.betterParse.parser.Parser
 import com.github.h0tk3y.betterParse.parser.parseToEnd
+import java.io.File
 
 const val WS = "[ \\t\\r\\n]+"
 const val SOLO = "[!(),;\\[\\]{}|%]"
@@ -41,7 +42,7 @@ const val QUOTED = "'(($CONTINUATION_ESCAPE)|($SINGLE_QUOTED_CHARACTER))*?'"
 const val DOUBLE_QUOTED_LIST = "\"(($CONTINUATION_ESCAPE)|($DOUBLE_QUOTED_CHARACTER))*?\""
 const val BACK_QUOTED_STRING = "`(($CONTINUATION_ESCAPE)|($BACK_QUOTED_CHARACTER))*?`"
 
-object PrologParser : Grammar<PrologFile>() {
+object PrologParser : Grammar<Any>() {
     val queryPref by regexToken("%\\?-")
     val lBr by literalToken("[")
     val rBr by literalToken("]")
@@ -53,7 +54,6 @@ object PrologParser : Grammar<PrologFile>() {
     val `!` by literalToken("!")
     val `,` by literalToken(",")
     val bar by literalToken("|")
-    val dot by literalToken(".")
     val hbSep by literalToken(":-")
 
     val decimal by regexToken(DECIMAL)
@@ -66,10 +66,18 @@ object PrologParser : Grammar<PrologFile>() {
 
     val otherOperator by listOf(
         "-->", "?-", "dynamic", "multifile", "discontiguous", "public",
-        "->", "\\+", "\\==", "==", "=", "\\=", "@<", "@=<", "@>", "@>=", "=..",
-        "is", "=:=", "=\\=", "=<", ">=", ":", "+", "/\\", "\\/",
+        "->", "\\+", "\\==", "=\\=", "=<", "=..", "==", "=:=", "=", "\\=", "@>=", "@<", "@=<",
+        "@>", "is", ">=", ":", "+", "/\\", "\\/",
         "//", "/", "rem", "mod", "<<", "<", ">>", ">", "**", "*", "^", "\\"
-    ).map(Regex::escape).joinToString("|").let(::regexToken)
+    ).also {
+        for (i in it.indices) for (j in it.indices) {
+            if (i < j && it[j].startsWith(it[i])) {
+                System.err.println("Wrong order of ${it[j]} and ${it[i]}")
+            }
+        }
+    }.map(Regex::escape).joinToString("|").let(::regexToken)
+
+    val dot by literalToken(".")
 
     val `-` by literalToken("-")
 
@@ -103,7 +111,7 @@ object PrologParser : Grammar<PrologFile>() {
     val atom by
 //    ((lBr * rBr) use { EmptyList }) or
 //            ((`{` * `}`) use { EmptyBraces }) or
-            (letterDigit use { Name(text) }) or
+    (letterDigit use { Name(text) }) or
             (graphicToken use { Graphic(text) }) or
             quoted or doubleQuotedList or backQuotedString or
             (semicolon use { Semicolon }) or
@@ -124,8 +132,8 @@ object PrologParser : Grammar<PrologFile>() {
 
     val termlist by separated(termWithoutCommas, `,`, acceptZero = true) use { terms }
 
-    val clause by term * -dot use ::Clause
-    val directive by -hbSep * term * -dot use ::Directive
+    val clause by termlist * -dot use ::Clause
+    val directive by -hbSep * termlist * -dot use ::Directive
     val query by -queryPref * clause use ::Query
 
     override val rootParser: Parser<PrologFile> by zeroOrMore(directive or clause or query) use ::PrologFile
@@ -134,7 +142,7 @@ object PrologParser : Grammar<PrologFile>() {
     val comment by regexToken("%([^\n\r?]|\\?[^\n\r-])[^\n\r]*[\r\n]", ignore = true)
     val ws by regexToken(WS, ignore = true)
 
-//    override val rootParser by termOperand
+//    override val rootParser by termlist
 }
 
 fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = object : Grammar<String>() {
@@ -193,7 +201,3 @@ fun quotedGrammar(forSingle: String, forDouble: String, forBack: String) = objec
 val QuotedGrammar = quotedGrammar("''", "\"", "`")
 val DoubleQuotedListGrammar = quotedGrammar("'", "\"\"", "`")
 val BackQuotedStringGrammar = quotedGrammar("'", "\"", "``")
-
-fun main() = println(
-    ListTerm(listOf(Variable("H")), Variable("T"))
-)

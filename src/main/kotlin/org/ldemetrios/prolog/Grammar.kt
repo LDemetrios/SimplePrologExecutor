@@ -5,16 +5,16 @@ data class PrologFile(val declarations: List<Declaration>) {
     override fun toString(): String = declarations.joinToString("\n", "", "\n\n")
 }
 
-data class Directive(val term: Term) : Declaration {
-    override fun toString(): String = ":- $term."
+data class Directive(val term: List<Term>) : Declaration {
+    override fun toString(): String = ":- ${term.joinToString(", ")}."
 }
 
 data class Query(val clause: Clause) : Declaration {
     override fun toString(): String = "%?- $clause"
 }
 
-data class Clause(val term: Term) : Declaration {
-    override fun toString(): String = "$term."
+data class Clause(val term: List<Term>) : Declaration {
+    override fun toString(): String = "${term.joinToString(", ")}."
 }
 
 interface Term
